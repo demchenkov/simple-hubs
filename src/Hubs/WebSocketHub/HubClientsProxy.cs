@@ -9,17 +9,17 @@ namespace Hubs.WebSocketHub;
 internal sealed class HubClientsProxy : IHubClients
 {
     private readonly WebSocketClientStore _clients;
-    private readonly Func<IHubProtocolHandler> _protocolHandlerFactoryFactory;
+    private readonly IHubProtocolHandler _protocolHandler;
     private readonly IServiceProvider _serviceProvider;
 
     public HubClientsProxy(
         WebSocketClientStore clients,
-        Func<IHubProtocolHandler> protocolHandlerFactory,
+        IHubProtocolHandler protocolHandler,
         IServiceProvider serviceProvider)
     {
         _clients = clients;
         _serviceProvider = serviceProvider;
-        _protocolHandlerFactoryFactory = protocolHandlerFactory;
+        _protocolHandler = protocolHandler;
     }
 
     public IHubClient Client(string connectionId)
@@ -34,8 +34,7 @@ internal sealed class HubClientsProxy : IHubClients
 
     private IHubClient HubClient(IWebSocketConnection client)
     {
-        var protocolHandler = _protocolHandlerFactoryFactory();
-        var connection = new ConnectionAdapter(client, protocolHandler);
+        var connection = new ConnectionAdapter(client, _protocolHandler);
         return ActivatorUtilities.CreateInstance<HubClient>(_serviceProvider, connection);
     }
 

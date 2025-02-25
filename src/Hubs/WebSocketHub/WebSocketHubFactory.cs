@@ -17,10 +17,9 @@ internal sealed class WebSocketHubFactory<THub> : IHubFactory<THub>
     public THub Create()
     {
         var server = _sp.GetRequiredService<WebSocketServer<THub>>();
-        var proxy = new HubClientsProxy(
-            server.Clients,
-            () => _sp.GetRequiredService<ProtocolHandlerFactory>().Create<THub>(), 
-            _sp);
+        var protocolHandler = _sp.GetRequiredService<ProtocolHandlerFactory>().Create<THub>();
+        
+        var proxy = new HubClientsProxy(server.Clients, protocolHandler, _sp);
             
         var hub = ActivatorUtilities.CreateInstance<THub>(_sp);
         hub.Clients = proxy;
