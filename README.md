@@ -28,20 +28,11 @@ await app.RunAsync();
 
 #### Client Side
 ```csharp
-using SignalRLight;
-
-var client = new SignalRLightClient("ws://localhost:5000");
-client.Connect();
-
-client.OnMessageReceived += (message) =>
-{
-    Console.WriteLine($"Server says: {message}");
-};
-
-client.SendMessage("Hello Server");
+// not supported yet
 ```
 
 ## Roadmap
+- [ ] Client Side supoport
 - [ ] Native Socket support
 - [ ] Authentication support
 - [ ] Load balancing across multiple servers
