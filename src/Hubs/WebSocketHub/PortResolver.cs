@@ -1,8 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using Hubs.Abstractions;
 
-namespace Hubs.Core;
+namespace Hubs.WebSocketHub;
 
 internal sealed class PortResolver : IPortResolver
 {

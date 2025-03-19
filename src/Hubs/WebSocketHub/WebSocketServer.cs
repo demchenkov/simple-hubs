@@ -16,20 +16,20 @@ internal class WebSocketServer<TAssociatedHub> : IHostedService
     private readonly Channel<MessageMetaInfo> _messageQueue = Channel.CreateUnbounded<MessageMetaInfo>();
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IPortResolver _portResolver;
-    private readonly HubServerOptions<TAssociatedHub> _options;
+    private readonly HubServerOptions _options;
     
     private WebSocketServer _server = null!;
 
     public WebSocketServer(
         IServiceScopeFactory serviceScopeFactory,
         IPortResolver portResolver,
-        IOptions<HubServerOptions<TAssociatedHub>> options,
+        IOptionsSnapshot<HubServerOptions> options,
         WebSocketClientStore clients)
     {
         Clients = clients;
         _serviceScopeFactory = serviceScopeFactory;
         _portResolver = portResolver;
-        _options = options.Value;
+        _options = options.Get(typeof(TAssociatedHub).FullName);
     }
     
     internal WebSocketClientStore Clients { get; }
@@ -56,7 +56,7 @@ internal class WebSocketServer<TAssociatedHub> : IHostedService
     {
         var tasks = Enumerable
             .Range(0, workerCount)
-            .Select(_ => Task.Factory.StartNew(Worker, TaskCreationOptions.LongRunning));
+            .Select(_ => Task.Run(Worker, cancellationToken));
         
         await Task.WhenAll(tasks);
         

@@ -1,4 +1,4 @@
-﻿namespace Hubs.Abstractions;
+﻿namespace Hubs.WebSocketHub;
 
 public interface IPortResolver
 {
