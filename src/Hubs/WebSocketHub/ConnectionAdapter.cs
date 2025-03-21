@@ -14,7 +14,7 @@ internal sealed class ConnectionAdapter : IConnection
         _protocolHandler = protocolHandler;
     }
         
-    public Task Send(HubMessage hubMessage)
+    public Task SendAsync(HubMessage hubMessage, CancellationToken cancellationToken = default)
     {
         var bytes = _protocolHandler.SerializeServerMessage(hubMessage);
         return _socket.Send(bytes.ToArray());

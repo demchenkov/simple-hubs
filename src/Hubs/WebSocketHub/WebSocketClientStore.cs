@@ -19,7 +19,7 @@ public class WebSocketClientStore : IEnumerable<IWebSocketConnection>
         return _clients.TryRemove(socket.ConnectionInfo.Id.ToString(), out _);
     }
 
-    public bool TryGetValue(string connectionId, out IWebSocketConnection o)
+    public bool TryGetValue(string connectionId, out IWebSocketConnection? o)
     {
         return _clients.TryGetValue(connectionId, out o);
     }

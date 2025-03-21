@@ -4,5 +4,5 @@ namespace Hubs.Abstractions;
 
 public interface IConnection
 {
-    Task Send(HubMessage hubMessage);
+    Task SendAsync(HubMessage hubMessage, CancellationToken cancellationToken = default);
 }

@@ -40,7 +40,7 @@ internal sealed class HubClient : IHubClient
     {
         try
         {
-           await _connection.Send(hubMessage);
+           await _connection.SendAsync(hubMessage, cancellationToken);
         }
         catch (Exception e)
         {
@@ -48,7 +48,7 @@ internal sealed class HubClient : IHubClient
         }
     }
 
-    internal async Task<T> SendAsync<T>(HubMessage hubMessage, CancellationToken cancellationToken = default)
+    private async Task<T> SendAsync<T>(HubMessage hubMessage, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -60,7 +60,7 @@ internal sealed class HubClient : IHubClient
             var tcs = new TaskCompletionSource<HubResponse>(cts.Token);
         
             _activeRequestStore.Add(requestId, tcs);
-            await _connection.Send(hubMessage);
+            await _connection.SendAsync(hubMessage, cts.Token);
         
             var response = await tcs.Task;
             var json = JsonSerializer.Serialize(response.Data);
@@ -77,5 +77,4 @@ internal sealed class HubClient : IHubClient
             _activeRequestStore.Remove(requestId);
         }
     }
-    
 }

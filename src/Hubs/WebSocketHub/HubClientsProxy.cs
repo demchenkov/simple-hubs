@@ -26,7 +26,7 @@ internal sealed class HubClientsProxy : IHubClients
     {
         if (_clients.TryGetValue(connectionId, out var client))
         {
-            return HubClient(client);
+            return HubClient(client!);
         }
         
         throw new KeyNotFoundException();

@@ -62,7 +62,7 @@ internal sealed class ClientMessageHandler<TAssociatedHub>
         
         await task.ConfigureAwait(false);
             
-        if (IsTaskWithoutResult(task, out var resultProperty))
+        if (!HasResult(task, out var resultProperty))
             return;
         
         var response = resultProperty?.GetValue(task);
@@ -78,27 +78,27 @@ internal sealed class ClientMessageHandler<TAssociatedHub>
     {
         if (_activeRequestStore.TryGetValue(message.RequestId, out var tcs))
         {
-            tcs.TrySetResult(message);
+            tcs!.TrySetResult(message);
         }
         
         return Task.CompletedTask;
     }
     
-    private static bool IsTaskWithoutResult(Task task, out PropertyInfo? resultProperty)
+    private static bool HasResult(Task task, out PropertyInfo? resultProperty)
     {
         resultProperty = task.GetType().GetProperty("Result");
         var taskType = task.GetType();
     
         if (resultProperty is null || !taskType.IsGenericType)
-            return true;
+            return false;
         
         var genericArgs = taskType.GetGenericArguments();
         if (genericArgs.Length == 1 && genericArgs[0].FullName == "System.Threading.Tasks.VoidTaskResult")
-            return true;
+            return false;
         
         if (resultProperty.PropertyType.FullName == "System.Threading.Tasks.VoidTaskResult")
-            return true;
+            return false;
         
-        return false;
+        return true;
     }
 }
