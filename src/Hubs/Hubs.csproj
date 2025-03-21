@@ -2,24 +2,31 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>latest</LangVersion>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Fleck" Version="1.2.0" />
-      <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.3" />
-      
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" PrivateAssets="all" />
-      <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
-      
-      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.3" />
-      
-      <PackageReference Include="System.Text.Json" Version="9.0.3" />
-      
-      <PackageReference Include="System.Threading.Channels" Version="9.0.3" />
+        <PackageReference Include="Fleck" Version="1.2.0" />
+
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.3" />
+
+        <PackageReference Include="System.Text.Json" Version="9.0.3" />
+        <PackageReference Include="System.Threading.Channels" Version="9.0.3" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.3" />
     </ItemGroup>
 
+    <!-- The following libraries include the source generator interfaces and types we need -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+    </ItemGroup>
+    
+    <!-- This ensures the library will be packaged as a source generator when we use `dotnet pack` -->
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true"
+              PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
 </Project>

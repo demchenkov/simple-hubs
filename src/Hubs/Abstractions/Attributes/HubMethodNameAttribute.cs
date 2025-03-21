@@ -3,7 +3,7 @@
 namespace Hubs.Abstractions.Attributes;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public class HubMethodNameAttribute : Attribute
+public sealed class HubMethodNameAttribute : Attribute
 {
     public string Name { get; }
  
