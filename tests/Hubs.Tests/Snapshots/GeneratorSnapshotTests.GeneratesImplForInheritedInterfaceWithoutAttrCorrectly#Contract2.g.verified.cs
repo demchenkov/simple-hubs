@@ -3,7 +3,7 @@ using System;
 
 namespace Hubs.InterfaceGenerators
 {
-    public class IContract2Impl : IContract2
+    public class Contract2Impl : IContract2
     {
         async System.Threading.Tasks.Task IContract1.Method1() 
         {

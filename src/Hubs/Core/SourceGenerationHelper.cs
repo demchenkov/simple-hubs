@@ -10,7 +10,7 @@ public static class SourceGenerationHelper
 
               namespace Hubs.InterfaceGenerators
               {
-                  public class {{value.InterfaceName}}Impl : {{value.InterfaceName}}
+                  public class {{value.GeneratedClassName}}Impl : {{value.InterfaceName}}
                   {
               {{string.Join("\n\n", MethodsImplementation(value))}}
                   }

@@ -55,7 +55,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
         // generate the source code and add it to the output
         var result = SourceGenerationHelper.GenerateInterfaceImplementation(value);
 
-        context.AddSource($"{value.InterfaceName.TrimStart('I')}.g.cs", SourceText.From(result, Encoding.UTF8));
+        context.AddSource($"{value.GeneratedClassName}.g.cs", SourceText.From(result, Encoding.UTF8));
     }
 
     static Example? GetInterfaceToGenerate(SemanticModel semanticModel, InterfaceDeclarationSyntax interfaceDeclarationSyntax)
@@ -143,6 +143,8 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
 
 public readonly record struct Example(string InterfaceName, ImmutableArray<string> MethodSignatures)
 {
+    public string GeneratedClassName { get; } = InterfaceName.Split('.').Last().TrimStart('I');
+    
     public bool Equals(Example other)
     {
         return InterfaceName == other.InterfaceName &&

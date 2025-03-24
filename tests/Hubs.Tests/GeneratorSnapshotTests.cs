@@ -89,6 +89,36 @@ public class GeneratorSnapshotTests
         
         return TestHelper.Verify(source);
     }
+    
+    [Fact]
+    public Task GeneratesImplForInterfaceInsideNamespaceCorrectly()
+    {
+        // The source code to test
+        var source =
+            """
+            using System;
+            using System.Threading.Tasks;
+            using Hubs.Abstractions.Attributes;
+
+            namespace TestNamespace 
+            {
+                [HubClientContract]
+                public interface IContract
+                {
+                    Task Method1();
+                    Task Method2(int i);
+                    Task Method3(object i);
+                    
+                    
+                    Task<int> Method4();
+                    Task<int> Method5(int i);
+                    Task<int> Method6(object i);
+                }
+            }
+            """;
+        
+        return TestHelper.Verify(source);
+    }
 }
 
 public static class TestHelper
