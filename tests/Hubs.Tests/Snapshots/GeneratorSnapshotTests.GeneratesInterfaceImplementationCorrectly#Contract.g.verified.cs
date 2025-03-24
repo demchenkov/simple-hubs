@@ -1,37 +1,36 @@
 ﻿//HintName: Contract.g.cs
 using System;
-using System.Threading.Tasks;
 
 namespace Hubs.InterfaceGenerators
 {
     public class IContractImpl : IContract
     {
-        public async Task Method1() 
+        async System.Threading.Tasks.Task IContract.Method1() 
         {
             throw new NotImplementedException();
         }
 
-        public async Task Method2(int i) 
+        async System.Threading.Tasks.Task IContract.Method2(int i) 
         {
             throw new NotImplementedException();
         }
 
-        public async Task Method3(object i) 
+        async System.Threading.Tasks.Task IContract.Method3(object i) 
         {
             throw new NotImplementedException();
         }
 
-        public async Task Method4() 
+        async System.Threading.Tasks.Task<int> IContract.Method4() 
         {
             throw new NotImplementedException();
         }
 
-        public async Task Method5(int i) 
+        async System.Threading.Tasks.Task<int> IContract.Method5(int i) 
         {
             throw new NotImplementedException();
         }
 
-        public async Task Method6(object i) 
+        async System.Threading.Tasks.Task<int> IContract.Method6(object i) 
         {
             throw new NotImplementedException();
         }

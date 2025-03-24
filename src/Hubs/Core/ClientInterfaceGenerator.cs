@@ -4,6 +4,7 @@ using Hubs.Abstractions.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+// ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator; try to avoid LINQ to boost rerformance
 
 namespace Hubs.Core;
 
@@ -11,29 +12,37 @@ namespace Hubs.Core;
 public class  ClientInterfaceGenerator : IIncrementalGenerator
 {
     private static readonly string _clientInterfaceName = typeof(HubClientContractAttribute).FullName!;
-    private static readonly string _clientMethodName = typeof(HubMethodNameAttribute).FullName!;
     
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // We're looking for methods with an attribute that are in an interface
-        // TODO: uncomment when ready
-        // var candidateMethodsProvider = context
-        //     .SyntaxProvider
-        //     .ForAttributeWithMetadataName(
-        //         _clientMethodName,
-        //         predicate: static (syntax, _) => syntax is MethodDeclarationSyntax { Parent: InterfaceDeclarationSyntax },
-        //         transform: static (ctx, _) => GetInterfaceToGenerate(ctx.SemanticModel, (InterfaceDeclarationSyntax)ctx.TargetNode.Parent!))
-        //     .Where(x => x is not null);
+        // We're looking for interfaces with an attribute
+        var candidateInterfacesProvider = context
+            .SyntaxProvider
+            .ForAttributeWithMetadataName(
+                _clientInterfaceName,
+                predicate: static (syntax, _) => syntax is InterfaceDeclarationSyntax,
+                transform: static (ctx, _) => GetInterfaceToGenerate(ctx.SemanticModel, (InterfaceDeclarationSyntax)ctx.TargetNode))
+            .Where(x => x is not null);
 
         // We also look for interfaces that derive from others, so we can see if any base methods contain
-        var candidateInterfacesProvider = context
+        var candidateWithBaseInterfacesProvider = context
             .SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (syntax, _) => syntax is InterfaceDeclarationSyntax { BaseList: not null },
                 transform: static (ctx, _) => GetInterfaceToGenerate(ctx.SemanticModel, (InterfaceDeclarationSyntax)ctx.Node))
             .Where(x => x is not null);
 
-        context.RegisterSourceOutput(candidateInterfacesProvider,
+        var res = candidateInterfacesProvider.Collect()
+            .Combine(candidateWithBaseInterfacesProvider.Collect())
+            .SelectMany((tuple, _) =>
+            {
+                var combined = tuple.Left.AddRange(tuple.Right);
+                var combinedWithoutDuplicates = new HashSet<Example?>(combined);
+                return combinedWithoutDuplicates.ToImmutableArray();
+            })
+            .WithTrackingName("ClientInterfaceGenerator");
+        
+        context.RegisterImplementationSourceOutput(res,
             static (spc, source) => Execute(source, spc));
     }
 
@@ -61,7 +70,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
         if (!HasAttributeAsBaseInterface(interfaceSymbol))
             return null;
         
-        var interfaceMembers = ImmutableArray<ISymbol>.Empty; ;
+        var interfaceMembers = ImmutableArray<ISymbol>.Empty;
         
         foreach (var baseInterface in interfaceSymbol.AllInterfaces)
         {
@@ -70,29 +79,54 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
 
         interfaceMembers = interfaceMembers.AddRange(interfaceSymbol.GetMembers());
         
-        var members = new List<IMethodSymbol>(interfaceMembers.Length);
+        var methodSignatures = new List<string>(interfaceMembers.Length);
         
+        var sb = new StringBuilder();
         foreach (var member in interfaceMembers)
         {
             if (member is IMethodSymbol { MethodKind: MethodKind.Ordinary } methodSymbol)
             {
                 if (methodSymbol.ReturnType.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks")
-                    members.Add(methodSymbol);
+                {
+                    sb.Append(methodSymbol.ReturnType.ToDisplayString());
+                    sb.Append(' ');
+                    sb.Append(methodSymbol.ContainingNamespace.IsGlobalNamespace ? string.Empty : methodSymbol.ContainingNamespace.ToDisplayString() + '.');
+                    sb.Append(methodSymbol.ContainingType.Name);
+                    sb.Append('.');
+                    sb.Append(methodSymbol.Name);
+                    sb.Append('(');
+                    sb.Append(string.Join(", ", methodSymbol.Parameters.Select(p => p.ToDisplayString())));
+                    sb.Append(')');
+
+                    methodSignatures.Add(sb.ToString());
+                    
+                    sb.Clear();
+                }
             }
             else
             {
+                // member.DeclaringSyntaxReferences[0].Span
                 // TODO: add diagnostic message
                 // interface should have only async methods as a contract
             }
         }
-
-        var interfaceName = interfaceSymbol.Name;
-        return new Example(interfaceName, members);
+        
+        return new Example(interfaceSymbol.ToDisplayString(), [..methodSignatures]);
     }
 
     private static bool HasAttributeAsBaseInterface(INamedTypeSymbol interfaceSymbol)
     {
+        if (HasAttribute(interfaceSymbol))
+            return true;
+        
         foreach (var baseInterface in interfaceSymbol.AllInterfaces)
+        {
+            if (HasAttribute(baseInterface)) return true;
+        }
+        
+        return false;
+
+        bool HasAttribute(INamedTypeSymbol baseInterface)
         {
             foreach (var attributeData in baseInterface.GetAttributes())
             {
@@ -101,46 +135,30 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
                     return true;
                 }
             }
+
+            return false;
         }
+    }
+}
+
+public readonly record struct Example(string InterfaceName, ImmutableArray<string> MethodSignatures)
+{
+    public bool Equals(Example other)
+    {
+        return InterfaceName == other.InterfaceName &&
+               MethodSignatures.SequenceEqual(other.MethodSignatures);
+    }
+    
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(InterfaceName);
         
-        return false;
-    }
-}
-
-public static class SourceGenerationHelper
-{
-    public static string GenerateInterfaceImplementation(Example value)
-    {
-        var r = 
-$$"""
-using System;
-using System.Threading.Tasks;
-
-namespace Hubs.InterfaceGenerators
-{
-    public class {{value.InterfaceName}}Impl : {{value.InterfaceName}}
-    {
-{{string.Join("\n\n", MethodsImplementation(value))}}
-    }
-}
-""";
-
-        return r;
-
-        static IEnumerable<string> MethodsImplementation(Example value)
+        foreach (var method in MethodSignatures)
         {
-            foreach (var method in value.Methods)
-            {
-                yield return
-$$"""
-        public async {{method.ReturnType.Name}} {{method.Name}}({{string.Join(", ", method.Parameters.Select(x => $"{x.Type.ToDisplayString()} {x.Name}"))}}) 
-        {
-            throw new NotImplementedException();
+            hash.Add(method);
         }
-""";
-            }
-        }
+    
+        return hash.ToHashCode();
     }
 }
-
-public record struct Example(string InterfaceName, List<IMethodSymbol> Methods);
