@@ -4,9 +4,10 @@ using Hubs.Abstractions.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+
 // ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator; try to avoid LINQ to boost rerformance
 
-namespace Hubs.Core;
+namespace Hubs.Core.ClientGeneration;
 
 [Generator]
 public class  ClientInterfaceGenerator : IIncrementalGenerator
@@ -37,7 +38,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
             .SelectMany((tuple, _) =>
             {
                 var combined = tuple.Left.AddRange(tuple.Right);
-                var combinedWithoutDuplicates = new HashSet<Example?>(combined);
+                var combinedWithoutDuplicates = new HashSet<InterfaceGenerationInfo?>(combined);
                 return combinedWithoutDuplicates.ToImmutableArray();
             })
             .WithTrackingName("ClientInterfaceGenerator");
@@ -46,7 +47,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
             static (spc, source) => Execute(source, spc));
     }
 
-    static void Execute(Example? source, SourceProductionContext context)
+    static void Execute(InterfaceGenerationInfo? source, SourceProductionContext context)
     {
         if (source is null)
             return;
@@ -58,7 +59,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
         context.AddSource($"{value.GeneratedClassName}.g.cs", SourceText.From(result, Encoding.UTF8));
     }
 
-    static Example? GetInterfaceToGenerate(SemanticModel semanticModel, InterfaceDeclarationSyntax interfaceDeclarationSyntax)
+    static InterfaceGenerationInfo? GetInterfaceToGenerate(SemanticModel semanticModel, InterfaceDeclarationSyntax interfaceDeclarationSyntax)
     {
         // Get the semantic representation of the enum syntax
         if (semanticModel.GetDeclaredSymbol(interfaceDeclarationSyntax) is not INamedTypeSymbol interfaceSymbol)
@@ -111,7 +112,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
             }
         }
         
-        return new Example(interfaceSymbol.ToDisplayString(), [..methodSignatures]);
+        return new InterfaceGenerationInfo(interfaceSymbol.ToDisplayString(), [..methodSignatures]);
     }
 
     private static bool HasAttributeAsBaseInterface(INamedTypeSymbol interfaceSymbol)
@@ -138,29 +139,5 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
 
             return false;
         }
-    }
-}
-
-public readonly record struct Example(string InterfaceName, ImmutableArray<string> MethodSignatures)
-{
-    public string GeneratedClassName { get; } = InterfaceName.Split('.').Last().TrimStart('I');
-    
-    public bool Equals(Example other)
-    {
-        return InterfaceName == other.InterfaceName &&
-               MethodSignatures.SequenceEqual(other.MethodSignatures);
-    }
-    
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-        hash.Add(InterfaceName);
-        
-        foreach (var method in MethodSignatures)
-        {
-            hash.Add(method);
-        }
-    
-        return hash.ToHashCode();
     }
 }

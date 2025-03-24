@@ -1,8 +1,8 @@
-﻿namespace Hubs.Core;
+﻿namespace Hubs.Core.ClientGeneration;
 
 public static class SourceGenerationHelper
 {
-    public static string GenerateInterfaceImplementation(Example value)
+    public static string GenerateInterfaceImplementation(InterfaceGenerationInfo value)
     {
         var r = 
             $$"""
@@ -19,7 +19,7 @@ public static class SourceGenerationHelper
 
         return r;
 
-        static IEnumerable<string> MethodsImplementation(Example value)
+        static IEnumerable<string> MethodsImplementation(InterfaceGenerationInfo value)
         {
             foreach (var signature in value.MethodSignatures)
             {
