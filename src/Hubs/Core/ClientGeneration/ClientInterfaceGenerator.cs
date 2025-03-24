@@ -89,9 +89,15 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
             {
                 if (methodSymbol.ReturnType.ContainingNamespace.ToDisplayString() == "System.Threading.Tasks")
                 {
+                    sb.Append("global::");
                     sb.Append(methodSymbol.ReturnType.ToDisplayString());
                     sb.Append(' ');
-                    sb.Append(methodSymbol.ContainingNamespace.IsGlobalNamespace ? string.Empty : methodSymbol.ContainingNamespace.ToDisplayString() + '.');
+                    sb.Append("global::");
+                    if (!methodSymbol.ContainingNamespace.IsGlobalNamespace)
+                    {
+                        sb.Append(methodSymbol.ContainingNamespace.ToDisplayString());
+                        sb.Append('.');
+                    }
                     sb.Append(methodSymbol.ContainingType.Name);
                     sb.Append('.');
                     sb.Append(methodSymbol.Name);
@@ -112,7 +118,7 @@ public class  ClientInterfaceGenerator : IIncrementalGenerator
             }
         }
         
-        return new InterfaceGenerationInfo(interfaceSymbol.ToDisplayString(), [..methodSignatures]);
+        return new InterfaceGenerationInfo("global::" + interfaceSymbol.ToDisplayString(), [..methodSignatures]);
     }
 
     private static bool HasAttributeAsBaseInterface(INamedTypeSymbol interfaceSymbol)

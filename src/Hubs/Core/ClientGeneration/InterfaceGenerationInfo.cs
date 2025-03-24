@@ -4,7 +4,7 @@ namespace Hubs.Core.ClientGeneration;
 
 public readonly record struct InterfaceGenerationInfo(string InterfaceName, ImmutableArray<string> MethodSignatures)
 {
-    public string GeneratedClassName { get; } = InterfaceName.Split('.').Last().TrimStart('I');
+    public string GeneratedClassName { get; } = InterfaceName.Split(':').Last().Split('.').Last().TrimStart('I');
     
     public bool Equals(InterfaceGenerationInfo other)
     {
