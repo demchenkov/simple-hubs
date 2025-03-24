@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Immutable;
+using System.Text;
 using Hubs.Abstractions.Attributes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,7 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace Hubs.Core;
 
 [Generator]
-public class ClientInterfaceGenerator : IIncrementalGenerator
+public class  ClientInterfaceGenerator : IIncrementalGenerator
 {
     private static readonly string _clientInterfaceName = typeof(HubClientContractAttribute).FullName!;
     private static readonly string _clientMethodName = typeof(HubMethodNameAttribute).FullName!;
@@ -27,10 +28,9 @@ public class ClientInterfaceGenerator : IIncrementalGenerator
         // We also look for interfaces that derive from others, so we can see if any base methods contain
         var candidateInterfacesProvider = context
             .SyntaxProvider
-            .ForAttributeWithMetadataName(
-                _clientInterfaceName,
-                predicate: static (syntax, _) => syntax is InterfaceDeclarationSyntax,
-                transform: static (ctx, _) => GetInterfaceToGenerate(ctx.SemanticModel, (InterfaceDeclarationSyntax)ctx.TargetNode))
+            .CreateSyntaxProvider(
+                predicate: static (syntax, _) => syntax is InterfaceDeclarationSyntax { BaseList: not null },
+                transform: static (ctx, _) => GetInterfaceToGenerate(ctx.SemanticModel, (InterfaceDeclarationSyntax)ctx.Node))
             .Where(x => x is not null);
 
         context.RegisterSourceOutput(candidateInterfacesProvider,
@@ -57,9 +57,19 @@ public class ClientInterfaceGenerator : IIncrementalGenerator
             // something went wrong
             return null;
         }
+
+        if (!HasAttributeAsBaseInterface(interfaceSymbol))
+            return null;
         
-        var interfaceName = interfaceSymbol.Name;
-        var interfaceMembers = interfaceSymbol.GetMembers();
+        var interfaceMembers = ImmutableArray<ISymbol>.Empty; ;
+        
+        foreach (var baseInterface in interfaceSymbol.AllInterfaces)
+        {
+            interfaceMembers = interfaceMembers.AddRange(baseInterface.GetMembers());
+        }
+
+        interfaceMembers = interfaceMembers.AddRange(interfaceSymbol.GetMembers());
+        
         var members = new List<IMethodSymbol>(interfaceMembers.Length);
         
         foreach (var member in interfaceMembers)
@@ -76,7 +86,24 @@ public class ClientInterfaceGenerator : IIncrementalGenerator
             }
         }
 
+        var interfaceName = interfaceSymbol.Name;
         return new Example(interfaceName, members);
+    }
+
+    private static bool HasAttributeAsBaseInterface(INamedTypeSymbol interfaceSymbol)
+    {
+        foreach (var baseInterface in interfaceSymbol.AllInterfaces)
+        {
+            foreach (var attributeData in baseInterface.GetAttributes())
+            {
+                if (attributeData.AttributeClass?.ToDisplayString() == _clientInterfaceName)
+                {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 }
 
